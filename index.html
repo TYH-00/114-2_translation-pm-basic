@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻譯專案管理（基礎款）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide 圖標 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        morandi: {
+                            bg: '#F4F6F4',      // 柔軟亞麻灰
+                            card: '#FFFFFF',    // 純白卡片
+                            text: '#2C3531',    // 深石板灰
+                            primary: '#7D9D8C', // 莫蘭迪鼠尾草綠
+                            primaryLight: '#D0DDD6',
+                            accent: '#C2B29E',  // 暖黏土色 / 米色
+                            accentLight: '#FAF6F0',
+                            red: '#D98880',     // 莫蘭迪 muted 紅
+                            yellow: '#E6C175',  // 莫蘭迪 muted 黃
+                            green: '#8FB9A8',   // 莫蘭迪 muted 綠
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F4F6F4;
+            color: #2C3531;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F4F6F4; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 頂部導航列 -->
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-morandi-primary/10 rounded-lg text-morandi-primary">
+                        <i data-lucide="languages" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-xl font-bold text-morandi-text tracking-wider">翻譯專案管理（基礎款）</span>
+                </div>
+                <div class="flex space-x-2 items-center">
+                    <button onclick="toggleSettingsModal()" class="px-3 py-2 text-xs font-semibold rounded-lg border border-morandi-primary text-morandi-primary hover:bg-morandi-primary/10 transition-all flex items-center space-x-1.5">
+                        <i data-lucide="cloud-cog" class="w-3.5 h-3.5"></i>
+                        <span>雲端資料來源配置</span>
+                    </button>
+                    <button onclick="switchTab('home')" id="tab-home" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-morandi-primary text-white shadow-sm flex items-center space-x-2">
+                        <i data-lucide="home" class="w-4 h-4"></i>
+                        <span>專案首頁</span>
+                    </button>
+                    <button onclick="switchTab('dispatch')" id="tab-dispatch" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-morandi-primary hover:bg-gray-50 flex items-center space-x-2">
+                        <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+                        <span>翻案進度追蹤</span>
+                    </button>
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-500 hover:text-morandi-primary hover:bg-gray-50 flex items-center space-x-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>KPI 數據室</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 配置模態視窗 -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-xl border border-gray-100 space-y-6">
+            <div class="flex justify-between items-start border-b border-gray-100 pb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-morandi-text flex items-center gap-2">
+                        <i data-lucide="settings" class="text-morandi-primary"></i>
+                        <span>雲端試算表 CSV 連接配置面板</span>
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-1">系統已預載您指定的專案試算表，若需要重新連結網址，可在下方進行修改。</p>
+                </div>
+                <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div class="p-3 bg-amber-50 text-amber-850 rounded-xl space-y-1">
+                    <p class="font-bold">⚠️ 注意事項：</p>
+                    <p>請務必確保 Google 試算表已完成「檔案」->「共用」->「發布到網路」，並在下拉選單選擇對應分頁且格式為「逗號分隔值 (.csv)」！</p>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">1. 譯者回報資料表 CSV 網址：</label>
+                        <input type="text" id="cfg-translator-url" class="w-full p-2.5 border border-gray-200 rounded-xl focus:border-morandi-primary focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">2. 審校回饋資料表 CSV 網址：</label>
+                        <input type="text" id="cfg-reviewer-url" class="w-full p-2.5 border border-gray-200 rounded-xl focus:border-morandi-primary focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">3. 成本預算評估表 CSV 網址：</label>
+                        <input type="text" id="cfg-budget-url" class="w-full p-2.5 border border-gray-200 rounded-xl focus:border-morandi-primary focus:ring-0">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">4. 專案進度調度總表 CSV 網址：</label>
+                        <input type="text" id="cfg-dispatch-url" class="w-full p-2.5 border border-gray-200 rounded-xl focus:border-morandi-primary focus:ring-0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 border-t border-gray-100 pt-4">
+                <button onclick="resetToDefaultURLs()" class="bg-gray-100 text-gray-600 hover:bg-gray-200 px-4 py-2 rounded-xl text-xs font-bold transition">
+                    載入預設真實雲端源
+                </button>
+                <button onclick="saveSettings()" class="bg-morandi-primary text-white hover:bg-morandi-primary/90 px-5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>同步雲端數據</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要內容區域 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- 雲端連動狀態列 -->
+        <div id="data-source-banner" class="mb-6 hidden bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs flex justify-between items-center shadow-sm">
+            <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-bold text-emerald-900">雲端連動成功：已從您的專案回報與進度試算表中實時加載最新 KPI 與調度數據！</span>
+            </div>
+            <button onclick="toggleSettingsModal()" class="underline font-bold text-emerald-900 flex items-center gap-1">
+                <span>變更網址</span> <i data-lucide="edit" class="w-3 h-3"></i>
+            </button>
+        </div>
+
+        <!-- 雲端載入與未同步提示列 -->
+        <div id="data-fallback-banner" class="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 text-xs flex justify-between items-center shadow-sm">
+            <div class="flex items-center space-x-2">
+                <span id="banner-loader-icon" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="banner-text">系統狀態：等待同步 Google Sheets 發布之 CSV 試算表連結。資料載入成功後，全頁將自動重繪。</span>
+            </div>
+            <button onclick="toggleSettingsModal()" class="bg-amber-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-amber-700 transition text-xs">
+                配置雲端試算表
+            </button>
+        </div>
+
+        <!-- 頁籤 1: 專案首頁 -->
+        <div id="content-home" class="tab-content space-y-8">
+            <div class="bg-gradient-to-r from-morandi-primary/20 via-morandi-primary/5 to-white p-8 rounded-3xl border border-morandi-primary/10">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-morandi-text mb-2">翻譯專案管理（基礎款）</h1>
+                        <p class="text-gray-600 text-sm max-w-3xl leading-relaxed">
+                            本系統已整合「譯者交稿回報表」、「審校品質回饋表」、「專案進度調度總表」與「財務成本預算表」。
+                            透過即時的多欄位聯動計算，系統能自動呈現各階段翻譯工作狀態、計算譯者及審校之雙向速度與品質 KPI 指標，並隨時監控專案財務健康度。
+                        </p>
+                    </div>
+                    <span class="text-xs bg-morandi-primary text-white font-bold px-3 py-1 rounded-full">雲端同步中</span>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <button onclick="switchTab('dispatch')" class="bg-morandi-primary text-white text-xs px-4 py-2.5 rounded-xl font-bold hover:bg-morandi-primary/90 transition shadow-sm">
+                        進入翻案進度追蹤
+                    </button>
+                    <button onclick="switchTab('dashboard')" class="bg-white border border-morandi-primary text-morandi-primary text-xs px-4 py-2.5 rounded-xl font-bold hover:bg-morandi-primary/10 transition">
+                        查看 KPI 數據室
+                    </button>
+                </div>
+            </div>
+
+            <!-- 專案角色架構 & 外部通道 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 團隊角色配置 -->
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-morandi-text flex items-center gap-2 border-b border-gray-50 pb-2">
+                        <i data-lucide="users" class="text-morandi-primary"></i> 專案人力資源架構
+                    </h3>
+                    <div class="space-y-3 text-xs text-gray-600">
+                        <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl">
+                            <span class="font-bold text-gray-700">專案經理 (PM)</span>
+                            <span class="bg-morandi-primaryLight text-morandi-text px-2.5 py-0.5 rounded text-[10px] font-bold">史努比</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl">
+                            <span class="font-bold text-gray-700">主譯團隊 (Translators)</span>
+                            <span class="bg-morandi-primaryLight text-morandi-text px-2.5 py-0.5 rounded text-[10px] font-bold">查理、莎莉</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-xl">
+                            <span class="font-bold text-gray-700">審校團隊 (Reviewers)</span>
+                            <span class="bg-morandi-accentLight text-morandi-text px-2.5 py-0.5 rounded text-[10px] font-bold">露西、奈勒斯</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 表單快速通道 -->
+                <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4 md:col-span-2">
+                    <h3 class="text-sm font-bold text-morandi-text flex items-center gap-2 border-b border-gray-50 pb-2">
+                        <i data-lucide="link" class="text-morandi-primary"></i> 核心協作表單與資源通道
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <a href="https://forms.gle/ij1ayf9TsLQc6gzx9" target="_blank" class="p-3 bg-gray-50 border border-gray-100 hover:border-morandi-primary rounded-xl text-xs block text-center font-bold hover:bg-morandi-primary/5 transition group">
+                            <div class="flex flex-col items-center gap-1 text-gray-700 group-hover:text-morandi-text">
+                                <i data-lucide="clipboard-list" class="w-5 h-5 text-morandi-primary"></i>
+                                <span>譯者交稿表單</span>
+                            </div>
+                        </a>
+                        <a href="https://forms.gle/6JyobyfTf5PuWuRB7" target="_blank" class="p-3 bg-gray-50 border border-gray-100 hover:border-morandi-primary rounded-xl text-xs block text-center font-bold hover:bg-morandi-primary/5 transition group">
+                            <div class="flex flex-col items-center gap-1 text-gray-700 group-hover:text-morandi-text">
+                                <i data-lucide="check-square" class="w-5 h-5 text-morandi-primary"></i>
+                                <span>審校回饋表單</span>
+                            </div>
+                        </a>
+                        <a href="https://drive.google.com/file/d/144AsglQzeCnlhYCH4HDpIKfaBm3J29yl/view?usp=sharing" target="_blank" class="p-3 bg-gray-50 border border-gray-100 hover:border-morandi-primary rounded-xl text-xs block text-center font-bold hover:bg-morandi-primary/5 transition group">
+                            <div class="flex flex-col items-center gap-1 text-gray-700 group-hover:text-morandi-text">
+                                <i data-lucide="code" class="w-5 h-5 text-morandi-primary"></i>
+                                <span>離線翻譯輔助 (Google Colab)</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 翻譯專案管理流程圖 -->
+            <div id="flowchart-section" class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-50 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-morandi-text flex items-center space-x-2">
+                            <i data-lucide="workflow" class="text-morandi-primary w-5 h-5"></i>
+                            <span>資源指南：翻譯專案管理流程圖</span>
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-1">流程與階段工作細則（準備、執行、交付階段之規範）。</p>
+                    </div>
+                    <div>
+                        <a href="https://docs.google.com/spreadsheets/d/1k7cuPF7EgDcPRb1EnyZfNmaDwHc6xfLkGc4E9ZkDGjU/edit?usp=sharing" target="_blank" class="inline-flex items-center space-x-1.5 bg-morandi-primary/10 border border-morandi-primary text-morandi-text px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-morandi-primary/20 transition group">
+                            <i data-lucide="book-open" class="w-3.5 h-3.5 text-morandi-primary group-hover:scale-110 transition"></i>
+                            <span>關鍵資源：術語庫 (Glossary)</span>
+                            <span class="text-[10px] text-emerald-800 underline ml-1">[開啟連結]</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="relative bg-gray-50 p-6 rounded-2xl border border-gray-100 overflow-x-auto min-w-[850px]">
+                    <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#2C3531 1px, transparent 1px); background-size: 16px 16px;"></div>
+                    <div class="relative z-10 flex flex-col space-y-8">
+                        <div class="grid grid-cols-3 gap-8">
+                            <div class="bg-amber-50/80 border border-amber-200/50 rounded-xl p-4 text-xs space-y-2 text-gray-700 shadow-sm relative">
+                                <div class="font-bold text-amber-800 flex items-center space-x-1.5 mb-1 border-b border-amber-200/30 pb-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>前置細部清單 (準備期)</span>
+                                </div>
+                                <ul class="space-y-1 text-[11px] leading-relaxed list-decimal pl-4">
+                                    <li>閱讀客戶要求信函，確認時程、格式與品質標準。</li>
+                                    <li>評估文件技術難度、字數、重複率。</li>
+                                    <li>工具設定：準備翻譯記憶庫 (TM) 與術語管理。</li>
+                                    <li>審校者從原文中提取關鍵技術詞彙。</li>
+                                </ul>
+                                <div class="absolute left-1/2 -bottom-8 transform -translate-x-1/2 flex flex-col items-center">
+                                    <div class="w-0.5 h-8 bg-dashed border-l border-amber-400"></div>
+                                    <div class="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-amber-400"></div>
+                                </div>
+                            </div>
+                            <div></div>
+                            <div class="bg-amber-50/80 border border-amber-200/50 rounded-xl p-4 text-xs space-y-2 text-gray-700 shadow-sm relative">
+                                <div class="font-bold text-amber-800 flex items-center space-x-1.5 mb-1 border-b border-amber-200/30 pb-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>後置細部清單 (交付期)</span>
+                                </div>
+                                <ul class="space-y-1 text-[11px] leading-relaxed list-decimal pl-4">
+                                    <li>排版：確保 Word 格式、對話標籤與客戶要求一致。</li>
+                                    <li>依規定時程向客戶繳交最終成果與附帶文件。</li>
+                                </ul>
+                                <div class="absolute left-1/2 -bottom-8 transform -translate-x-1/2 flex flex-col items-center">
+                                    <div class="w-0.5 h-8 bg-dashed border-l border-amber-400"></div>
+                                    <div class="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-amber-400"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-8 pt-4 pb-4 items-center relative">
+                            <div class="absolute top-1/2 left-[15%] right-[15%] h-0.5 bg-gray-300 transform -translate-y-1/2 z-0"></div>
+                            <div class="bg-white border-2 border-morandi-primary rounded-xl p-4 shadow-sm text-center z-10 relative">
+                                <div class="w-6 h-6 rounded-full bg-morandi-primary text-white font-bold text-xs flex items-center justify-center mx-auto -mt-7 mb-2.5 border-4 border-gray-50">I</div>
+                                <h4 class="font-bold text-morandi-text text-sm mb-1">準備階段</h4>
+                                <div class="text-[11px] text-left text-gray-600 bg-gray-50 p-2 rounded-lg space-y-1 border border-gray-100">
+                                    <p class="font-semibold text-morandi-primary">1. 專案分析與啟動</p>
+                                    <p class="font-semibold text-morandi-primary">2. 術語提取與建立</p>
+                                </div>
+                                <div class="absolute top-1/2 -right-6 transform -translate-y-1/2 z-20">
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-morandi-primary"></i>
+                                </div>
+                            </div>
+                            <div class="bg-white border-2 border-morandi-primary rounded-xl p-4 shadow-sm text-center z-10 relative">
+                                <div class="w-6 h-6 rounded-full bg-morandi-primary text-white font-bold text-xs flex items-center justify-center mx-auto -mt-7 mb-2.5 border-4 border-gray-50">II</div>
+                                <h4 class="font-bold text-morandi-text text-sm mb-1">執行階段</h4>
+                                <div class="text-[11px] text-left text-gray-600 bg-gray-50 p-2 rounded-lg space-y-1 border border-gray-100">
+                                    <p class="font-semibold text-morandi-primary">3. 初稿生成與精修</p>
+                                    <p class="font-semibold text-morandi-primary">4. 雙階段審核</p>
+                                </div>
+                                <div class="absolute top-1/2 -right-6 transform -translate-y-1/2 z-20">
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-morandi-primary"></i>
+                                </div>
+                            </div>
+                            <div class="bg-white border-2 border-morandi-primary rounded-xl p-4 shadow-sm text-center z-10 relative">
+                                <div class="w-6 h-6 rounded-full bg-morandi-primary text-white font-bold text-xs flex items-center justify-center mx-auto -mt-7 mb-2.5 border-4 border-gray-50">III</div>
+                                <h4 class="font-bold text-morandi-text text-sm mb-1">交付階段</h4>
+                                <div class="text-[11px] text-left text-gray-600 bg-gray-50 p-2 rounded-lg space-y-1 border border-gray-100">
+                                    <p class="font-semibold text-morandi-primary">5. 最終品質管控</p>
+                                    <p class="font-semibold text-morandi-primary">6. 交件與回報</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-8">
+                            <div></div>
+                            <div class="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4 text-xs space-y-2 text-gray-700 shadow-sm relative">
+                                <div class="absolute left-1/2 -top-8 transform -translate-x-1/2 flex flex-col items-center">
+                                    <div class="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-amber-400"></div>
+                                    <div class="w-0.5 h-8 bg-dashed border-l border-amber-400"></div>
+                                </div>
+                                <div class="font-bold text-amber-800 flex items-center space-x-1.5 mb-1 border-b border-amber-200/30 pb-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span>核心翻譯與審查指引 (執行期)</span>
+                                </div>
+                                <ul class="space-y-1 text-[11px] leading-relaxed list-decimal pl-4">
+                                    <li>翻譯與潤飾。</li>
+                                    <li>檢查譯文對話格式、風格與流暢性。</li>
+                                    <li>比對原文，專注於技術術語、數據、邏輯連貫性的準確性。</li>
+                                    <li>提出修改建議或直接進行修正。</li>
+                                </ul>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 專案知識庫與參考連結 -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-morandi-text flex items-center gap-2 border-b border-gray-50 pb-2">
+                    <i data-lucide="database" class="text-morandi-primary"></i> 專案基礎知識庫與參考資料
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                    <a href="https://docs.google.com/spreadsheets/d/1vbvtJbOYIC4sGTRpsoXS7Bsyc3NOJ8iMCBxojjCPgnQ/edit?usp=sharing" target="_blank" class="p-4 border border-gray-100 hover:border-morandi-primary rounded-xl flex items-center gap-3 bg-gray-50/50 hover:bg-white transition shadow-sm">
+                        <i data-lucide="trending-up" class="w-8 h-8 text-morandi-primary"></i>
+                        <div>
+                            <span class="font-bold block text-gray-700">KPI 績效總表</span>
+                            <span class="text-gray-400 text-[10px]">檢視專案關鍵數據</span>
+                        </div>
+                    </a>
+                    <a href="https://docs.google.com/document/d/1dmDwtvAUDlRUjSGbzL3UXr72rbhSGpkGf-z6JY3O38Q/edit?usp=sharing" target="_blank" class="p-4 border border-gray-100 hover:border-morandi-primary rounded-xl flex items-center gap-3 bg-gray-50/50 hover:bg-white transition shadow-sm">
+                        <i data-lucide="file-check-2" class="w-8 h-8 text-morandi-primary"></i>
+                        <div>
+                            <span class="font-bold block text-gray-700">翻譯品質評估表</span>
+                            <span class="text-gray-400 text-[10px]">詳細品質指標與定義</span>
+                        </div>
+                    </a>
+                    <a href="https://docs.google.com/spreadsheets/d/1UXqhO7mDK1D6vlt-hYrsdYl-DSkiRT3L1k7Gr1LhvpE/edit?usp=sharing" target="_blank" class="p-4 border border-gray-100 hover:border-morandi-primary rounded-xl flex items-center gap-3 bg-gray-50/50 hover:bg-white transition shadow-sm">
+                        <i data-lucide="dollar-sign" class="w-8 h-8 text-morandi-primary"></i>
+                        <div>
+                            <span class="font-bold block text-gray-700">專案預算追蹤表</span>
+                            <span class="text-gray-400 text-[10px]">各階段成本盈餘核對</span>
+                        </div>
+                    </a>
+                    <a href="https://docs.google.com/spreadsheets/d/1k7cuPF7EgDcPRb1EnyZfNmaDwHc6xfLkGc4E9ZkDGjU/edit?usp=sharing" target="_blank" class="p-4 border border-gray-100 hover:border-morandi-primary rounded-xl flex items-center gap-3 bg-gray-50/50 hover:bg-white transition shadow-sm">
+                        <i data-lucide="library" class="w-8 h-8 text-morandi-primary"></i>
+                        <div>
+                            <span class="font-bold block text-gray-700">專案統一術語庫</span>
+                            <span class="text-gray-400 text-[10px]">品質評分術語查閱</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤 2: 翻案進度追蹤 -->
+        <div id="content-dispatch" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                    <h3 class="text-lg font-bold text-morandi-text flex items-center gap-2">
+                        <i data-lucide="milestone" class="text-morandi-primary"></i> 翻案進度追蹤總表
+                    </h3>
+                    <button onclick="syncAllSheets()" class="p-2 border border-morandi-primary text-morandi-primary rounded-lg text-xs hover:bg-morandi-primary/10 transition flex items-center gap-1.5 font-bold">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 刷新雲端狀態
+                    </button>
+                </div>
+                <div class="border border-gray-100 rounded-2xl overflow-hidden bg-white text-xs">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 font-bold border-b border-gray-100">
+                                <th class="p-4">任務編號</th>
+                                <th class="p-4">交付內容 (頁次 / 影片秒數)</th>
+                                <th class="p-4">負責譯者</th>
+                                <th class="p-4">譯者原定交付日</th>
+                                <th class="p-4">負責審校</th>
+                                <th class="p-4">審校原定交付日</th>
+                                <th class="p-4 text-center">當前狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatch-table-body" class="divide-y divide-gray-50">
+                            <tr><td colspan="7" class="p-8 text-center text-gray-400">正在等待雲端調度總表數據，請確認設定面板中的資料連線...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤 3: KPI 數據室 -->
+        <div id="content-dashboard" class="tab-content hidden space-y-8">
+            <!-- 核心 KPI 看板 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+                    <span class="text-xs text-gray-400 block font-bold mb-1">任務總處理字數</span>
+                    <span id="stat-words" class="text-2xl font-bold text-morandi-text">--</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+                    <span class="text-xs text-gray-400 block font-bold mb-1">已回報版本次數</span>
+                    <span id="stat-versions" class="text-2xl font-bold text-morandi-text">--</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+                    <span class="text-xs text-gray-400 block font-bold mb-1">譯者累計總時長</span>
+                    <span id="stat-tr-time" class="text-2xl font-bold text-morandi-text">--</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+                    <span class="text-xs text-gray-400 block font-bold mb-1">審校累計總時長</span>
+                    <span id="stat-review-time" class="text-2xl font-bold text-morandi-text">--</span>
+                </div>
+            </div>
+
+            <!-- 圖表格線區 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 圖表 1: 專案預算控制儀表 -->
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between h-[380px]">
+                    <div class="flex justify-between items-center border-b border-gray-50 pb-2">
+                        <h4 class="text-sm font-bold text-morandi-text flex items-center gap-1.5">
+                            <i data-lucide="gauge" class="text-morandi-primary"></i> 專案預算控制儀表
+                        </h4>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded font-bold">總分配預算 NT$ 32,000 元</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-center justify-center my-auto">
+                        <svg class="w-48 h-28" viewBox="0 0 200 110">
+                            <path d="M 20 100 A 80 80 0 0 1 80 20" fill="none" stroke="#D98880" stroke-width="14" />
+                            <path d="M 80 20 A 80 80 0 0 1 120 20" fill="none" stroke="#E6C175" stroke-width="14" />
+                            <path d="M 120 20 A 80 80 0 0 1 180 100" fill="none" stroke="#8FB9A8" stroke-width="14" />
+                            <!-- 指針 -->
+                            <g id="gauge-needle" transform="translate(100, 100) rotate(0)" class="transition-all duration-1000">
+                                <line x1="0" y1="0" x2="0" y2="-70" stroke="#374151" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="0" cy="0" r="5" fill="#1f2937" />
+                            </g>
+                        </svg>
+                        <span class="text-xs font-bold text-gray-500 mt-2">
+                            目前預算結餘率：<span id="budget-val-text" class="text-morandi-primary text-sm font-bold">--</span>
+                        </span>
+                    </div>
+                    <div id="budget-status-box" class="text-xs p-3 text-center rounded-xl bg-gray-50 font-medium">
+                        正在載入雲端預算分配比例...
+                    </div>
+                </div>
+
+                <!-- 圖表 2: 譯者核心 KPI 績效看板 -->
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between h-[380px]">
+                    <div class="border-b border-gray-50 pb-2">
+                        <h4 class="text-sm font-bold text-morandi-text flex items-center gap-1.5">
+                            <i data-lucide="trophy" class="text-morandi-primary"></i> 譯者核心 KPI 績效看板
+                        </h4>
+                        <p class="text-[10px] text-gray-400 mt-0.5">統計項目：每小時處理字數、退修返工率、審校評定 QL Rate 品質級</p>
+                    </div>
+                    
+                    <div id="translator-kpi-container" class="space-y-4 my-auto">
+                        <p class="text-xs text-gray-400 text-center py-4">正在解算譯者 KPI...</p>
+                    </div>
+                </div>
+
+                <!-- 圖表 3: 審校回報翻譯錯誤類型分布統計 -->
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between h-[380px]">
+                    <div class="border-b border-gray-50 pb-2">
+                        <h4 class="text-sm font-bold text-morandi-text flex items-center gap-1.5">
+                            <i data-lucide="pie-chart" class="text-morandi-primary"></i> 審校回報翻譯錯誤類型分布統計
+                        </h4>
+                        <p class="text-[10px] text-gray-400 mt-0.5">實時累計審校回饋表中五大類翻譯錯誤記點比例</p>
+                    </div>
+                    
+                    <div class="flex items-center justify-around my-auto">
+                        <!-- 自訂圓餅圖 -->
+                        <div class="relative w-28 h-28 flex-shrink-0">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 32 32">
+                                <circle cx="16" cy="16" r="14" fill="transparent" stroke="#F4F6F4" stroke-width="4" />
+                                <circle id="pie-1" cx="16" cy="16" r="14" fill="transparent" stroke="#8FB9A8" stroke-width="4" stroke-dasharray="0 100" />
+                                <circle id="pie-2" cx="16" cy="16" r="14" fill="transparent" stroke="#E6C175" stroke-width="4" stroke-dasharray="0 100" />
+                                <circle id="pie-3" cx="16" cy="16" r="14" fill="transparent" stroke="#D98880" stroke-width="4" stroke-dasharray="0 100" />
+                                <circle id="pie-4" cx="16" cy="16" r="14" fill="transparent" stroke="#7D9D8C" stroke-width="4" stroke-dasharray="0 100" />
+                                <circle id="pie-5" cx="16" cy="16" r="14" fill="transparent" stroke="#C2B29E" stroke-width="4" stroke-dasharray="0 100" />
+                            </svg>
+                        </div>
+                        <div id="legends-container" class="space-y-1 text-xs pl-4 max-h-[220px] overflow-y-auto w-full">
+                            <!-- 錯誤分類 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 圖表 4: 審校核心 KPI 績效看板 -->
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between h-[380px]">
+                    <div class="border-b border-gray-50 pb-2">
+                        <h4 class="text-sm font-bold text-morandi-text flex items-center gap-1.5">
+                            <i data-lucide="award" class="text-morandi-primary"></i> 審校核心 KPI 績效看板
+                        </h4>
+                        <p class="text-[10px] text-gray-400 mt-0.5">統計項目：審校者累計工作總時長、已處理件數</p>
+                    </div>
+
+                    <div id="reviewer-kpi-container" class="space-y-4 my-auto">
+                        <p class="text-xs text-gray-400 text-center py-4">正在解算審校 KPI...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-150 py-4 text-center text-xs text-gray-400 mt-8">
+        &copy; 2026 翻譯專案管理 (基礎款). Designed by Samantha (Powered by Gemini)
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // 預設 4 個您提供的高亮 CSV 雲端連結
+        const DEFAULT_URLS = {
+            translator: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVklLjIOomIn-UmvCDzygAZa9wimi5YqM8m6XJDm1qhdVWlrRnV3a2vXY6Os0PMoYHnENVmQxnF3aO/pub?output=csv",
+            reviewer: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0TuC0KgEV38cFEJdJfrjPV-smopEDai2Wd5JERF-Z3edGAcjlzzWm1-hZ-D6NzN8uo_hLkAijGFur/pub?output=csv",
+            budget: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSMeMV4eMrwshYGZGEjjer7BE_pF1kXNQsOj40ydkOZawqhw93emv3vK709quHL-zg0z1tD7RBw1Hmn/pub?output=csv",
+            dispatch: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRGS2vgt_NU2NMD9auC-0Jn1P0eJKCN3ECt6MS3qOxmOHUVroB7pvoo4PBnAgcFWEflSgvVtX9S0k0M/pub?output=csv"
+        };
+
+        // 背景存儲區
+        let rawTranslatorData = [];
+        let rawReviewerData = [];
+        let rawBudgetData = [];
+        let rawDispatchData = [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(b => b.className = "nav-btn px-4 py-2 rounded-lg text-sm font-medium transition text-gray-500 hover:text-morandi-primary hover:bg-gray-50 flex items-center space-x-2");
+            if(document.getElementById(`tab-${tabId}`)) document.getElementById(`tab-${tabId}`).className = "nav-btn px-4 py-2 rounded-lg text-sm font-medium transition bg-morandi-primary text-white shadow-sm flex items-center space-x-2";
+        }
+
+        function toggleSettingsModal() { 
+            document.getElementById('settings-modal').classList.toggle('hidden'); 
+        }
+
+        // CSV 解析模組
+        function parseCSV(text) {
+            return text.split(/\r\n|\n/).map(line => {
+                let res = [], curr = '', inQ = false;
+                for (let i = 0; i < line.length; i++) {
+                    let c = line[i];
+                    if (c === '"') inQ = !inQ;
+                    else if (c === ',' && !inQ) { res.push(curr.trim()); curr = ''; }
+                    else curr += c;
+                }
+                res.push(curr.trim());
+                return res;
+            }).filter(r => r.length > 0 && r[0] !== "");
+        }
+
+        // 智慧型帶「+」數字解析與累加計算函數
+        function parseNumberWithPlus(val) {
+            if (!val) return { val: 0, hasPlus: false };
+            let str = String(val).trim();
+            let hasPlus = str.includes('+');
+            let num = parseInt(str.replace(/[^0-9]/g, '')) || 0;
+            return { val: num, hasPlus: hasPlus };
+        }
+
+        // 模糊欄位索引尋找工具：防範 Google Forms 自增多餘括號與空格 (例如「實際翻譯總時長 (小時)」)
+        function findCol(headers, targets) {
+            if (!headers) return -1;
+            for (let t of targets) {
+                let idx = headers.findIndex(h => h.trim().toLowerCase().includes(t.toLowerCase()));
+                if (idx !== -1) return idx;
+            }
+            return -1;
+        }
+
+        function initSettings() {
+            const translatorUrl = localStorage.getItem('cfg_translator_url') || DEFAULT_URLS.translator;
+            const reviewerUrl = localStorage.getItem('cfg_reviewer_url') || DEFAULT_URLS.reviewer;
+            const budgetUrl = localStorage.getItem('cfg_budget_url') || DEFAULT_URLS.budget;
+            const dispatchUrl = localStorage.getItem('cfg_dispatch_url') || DEFAULT_URLS.dispatch;
+
+            document.getElementById('cfg-translator-url').value = translatorUrl;
+            document.getElementById('cfg-reviewer-url').value = reviewerUrl;
+            document.getElementById('cfg-budget-url').value = budgetUrl;
+            document.getElementById('cfg-dispatch-url').value = dispatchUrl;
+        }
+
+        function resetToDefaultURLs() {
+            document.getElementById('cfg-translator-url').value = DEFAULT_URLS.translator;
+            document.getElementById('cfg-reviewer-url').value = DEFAULT_URLS.reviewer;
+            document.getElementById('cfg-budget-url').value = DEFAULT_URLS.budget;
+            document.getElementById('cfg-dispatch-url').value = DEFAULT_URLS.dispatch;
+        }
+
+        function saveSettings() {
+            localStorage.setItem('cfg_translator_url', document.getElementById('cfg-translator-url').value);
+            localStorage.setItem('cfg_reviewer_url', document.getElementById('cfg-reviewer-url').value);
+            localStorage.setItem('cfg_budget_url', document.getElementById('cfg-budget-url').value);
+            localStorage.setItem('cfg_dispatch_url', document.getElementById('cfg-dispatch-url').value);
+            toggleSettingsModal();
+            syncAllSheets();
+        }
+
+        async function syncAllSheets() {
+            // 防空檢查保護：更新上方的提示横幅
+            const fallbackBanner = document.getElementById('data-fallback-banner');
+            const sourceBanner = document.getElementById('data-source-banner');
+            const loaderIcon = document.getElementById('banner-loader-icon');
+            const bannerText = document.getElementById('banner-text');
+
+            if (fallbackBanner) fallbackBanner.classList.remove('hidden');
+            if (sourceBanner) sourceBanner.classList.add('hidden');
+            if (loaderIcon) {
+                loaderIcon.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-spin border-t-transparent border border-amber-800";
+            }
+            if (bannerText) {
+                bannerText.innerText = "系統狀態：正在從 Google Sheets 同步實時數據...";
+            }
+
+            const translatorUrl = localStorage.getItem('cfg_translator_url') || DEFAULT_URLS.translator;
+            const reviewerUrl = localStorage.getItem('cfg_reviewer_url') || DEFAULT_URLS.reviewer;
+            const budgetUrl = localStorage.getItem('cfg_budget_url') || DEFAULT_URLS.budget;
+            const dispatchUrl = localStorage.getItem('cfg_dispatch_url') || DEFAULT_URLS.dispatch;
+
+            let successCount = 0;
+
+            try {
+                const res = await fetch(translatorUrl);
+                const text = await res.text();
+                rawTranslatorData = parseCSV(text);
+                successCount++;
+            } catch (e) { console.error("譯者回報 CSV 載入失敗", e); }
+
+            try {
+                const res = await fetch(reviewerUrl);
+                const text = await res.text();
+                rawReviewerData = parseCSV(text);
+                successCount++;
+            } catch (e) { console.error("審校回饋 CSV 載入失敗", e); }
+
+            try {
+                const res = await fetch(budgetUrl);
+                const text = await res.text();
+                rawBudgetData = parseCSV(text);
+                successCount++;
+            } catch (e) { console.error("預算 CSV 載入失敗", e); }
+
+            try {
+                const res = await fetch(dispatchUrl);
+                const text = await res.text();
+                rawDispatchData = parseCSV(text);
+                successCount++;
+            } catch (e) { console.error("調度總表 CSV 載入失敗", e); }
+
+            if (loaderIcon) {
+                loaderIcon.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+            }
+
+            if (successCount === 4) {
+                if (sourceBanner) sourceBanner.classList.remove('hidden');
+                if (fallbackBanner) fallbackBanner.classList.add('hidden');
+            } else {
+                if (sourceBanner) sourceBanner.classList.add('hidden');
+                if (fallbackBanner) fallbackBanner.classList.remove('hidden');
+                if (bannerText) {
+                    bannerText.innerText = `系統狀態：同步部分失敗 (成功數: ${successCount}/4)。請確認是否將所有 Google 試算表發布成網頁 CSV 格式。`;
+                }
+            }
+
+            calculateAndRender();
+        }
+
+        // ===================================================
+        // 🔮 計算與渲染引擎 (KPI 計算整合)
+        // ===================================================
+        function calculateAndRender() {
+            // 防崩潰保護機制
+            if (!rawTranslatorData || rawTranslatorData.length <= 1 || !rawReviewerData || rawReviewerData.length <= 1) {
+                return; 
+            }
+
+            // 建立模糊索引對照
+            const trHeader = rawTranslatorData[0];
+            const trIdx = {
+                name: findCol(trHeader, ["譯者姓名", "姓名"]),
+                words: findCol(trHeader, ["實際翻譯總字數", "字數", "總字數"]),
+                hours: findCol(trHeader, ["實際翻譯總時長", "時長", "小時", "時間"]),
+                version: findCol(trHeader, ["版本編號", "版本"]),
+                pdfPage: findCol(trHeader, ["翻譯pdf頁次", "頁次", "頁碼", "秒數"])
+            };
+
+            const revHeader = rawReviewerData[0];
+            const revIdx = {
+                trName: findCol(revHeader, ["譯者姓名", "姓名"]),
+                contentInfo: findCol(revHeader, ["翻譯pdf頁次", "頁次", "頁碼", "秒數"]),
+                version: findCol(revHeader, ["版本編號", "版本"]),
+                revHours: findCol(revHeader, ["實際審校總時長", "審校時長", "時長", "小時", "時間"]),
+                qlRate: findCol(revHeader, ["品質等級", "QL Rate", "品質"]),
+                isReturned: findCol(revHeader, ["是否退還", "退還", "退回"]),
+                errTerm: findCol(revHeader, ["術語不一致"]),
+                errTrans: findCol(revHeader, ["誤譯"]),
+                errGrammar: findCol(revHeader, ["文法錯誤"]),
+                errOmission: findCol(revHeader, ["漏譯"]),
+                errContext: findCol(revHeader, ["語境失真"])
+            };
+
+            // --- 1. 翻案進度追蹤總表 (頁籤2) ---
+            const dispatchTbody = document.getElementById('dispatch-table-body');
+            if (dispatchTbody) {
+                dispatchTbody.innerHTML = '';
+                
+                if (!rawDispatchData || rawDispatchData.length === 0) {
+                    dispatchTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">目前無「翻案進度」雲端數據，請確認試算表連接...</td></tr>`;
+                } else {
+                    try {
+                        const dpHeader = rawDispatchData[0];
+                        const dpIdx = {
+                            id: findCol(dpHeader, ["編號", "任務編號"]),
+                            content: findCol(dpHeader, ["翻譯pdf頁次或影片秒數", "頁次", "交付內容"]),
+                            tr: findCol(dpHeader, ["負責譯者", "譯者"]),
+                            trDate: findCol(dpHeader, ["譯者原定交付日期", "譯者原定交付日"]),
+                            rev: findCol(dpHeader, ["負責審校", "審校"]),
+                            revDate: findCol(dpHeader, ["審校原定交付日期", "審校原定交付日"]),
+                            status: findCol(dpHeader, ["狀態"])
+                        };
+
+                        const activeDispatchRows = rawDispatchData.slice(1);
+                        activeDispatchRows.forEach(row => {
+                            if (row.length < 2) return;
+                            const tr = document.createElement('tr');
+                            tr.className = "hover:bg-gray-50 transition";
+                            
+                            const statusStr = row[dpIdx.status] || "進行中";
+                            let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">進行中</span>`;
+                            if (statusStr.includes("完成") || statusStr.includes("交") || statusStr.includes("已")) {
+                                statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">已交付完成</span>`;
+                            } else if (statusStr.includes("退") || statusStr.includes("返")) {
+                                statusBadge = `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700">退修返工中</span>`;
+                            }
+
+                            tr.innerHTML = `
+                                <td class="p-4 font-bold text-morandi-text">${dpIdx.id !== -1 && row[dpIdx.id] ? row[dpIdx.id] : '--'}</td>
+                                <td class="p-4">${dpIdx.content !== -1 && row[dpIdx.content] ? row[dpIdx.content] : '--'}</td>
+                                <td class="p-4 font-medium">${dpIdx.tr !== -1 && row[dpIdx.tr] ? row[dpIdx.tr] : '--'}</td>
+                                <td class="p-4 text-gray-400">${dpIdx.trDate !== -1 && row[dpIdx.trDate] ? row[dpIdx.trDate] : '--'}</td>
+                                <td class="p-4 font-medium">${dpIdx.rev !== -1 && row[dpIdx.rev] ? row[dpIdx.rev] : '--'}</td>
+                                <td class="p-4 text-gray-400">${dpIdx.revDate !== -1 && row[dpIdx.revDate] ? row[dpIdx.revDate] : '--'}</td>
+                                <td class="p-4 text-center">${statusBadge}</td>
+                            `;
+                            dispatchTbody.appendChild(tr);
+                        });
+                    } catch (err) {
+                        console.error("進度表渲染失敗", err);
+                        dispatchTbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-400 font-bold">進度試算表格式不匹配，請檢查欄位。</td></tr>`;
+                    }
+                }
+            }
+
+            // --- 2. 核心看板數據解算 ---
+            let totalWordsTranslated = 0;
+            let totalVersionCount = 0;
+
+            rawTranslatorData.slice(1).forEach(row => {
+                if (trIdx.words !== -1 && row[trIdx.words]) {
+                    totalWordsTranslated += parseInt(row[trIdx.words].replace(/[^0-9]/g, '')) || 0;
+                }
+                if (trIdx.version !== -1 && row[trIdx.version]) {
+                    totalVersionCount++;
+                }
+            });
+
+            let totalReviewHours = 0;
+            let totalTrHours = 0;
+
+            rawReviewerData.slice(1).forEach(row => {
+                if (revIdx.revHours !== -1 && row[revIdx.revHours]) {
+                    totalReviewHours += parseFloat(row[revIdx.revHours]) || 0;
+                }
+            });
+
+            rawTranslatorData.slice(1).forEach(row => {
+                if (trIdx.hours !== -1 && row[trIdx.hours]) {
+                    totalTrHours += parseFloat(row[trIdx.hours]) || 0;
+                }
+            });
+
+            const statWords = document.getElementById('stat-words');
+            const statVersions = document.getElementById('stat-versions');
+            const statTrTime = document.getElementById('stat-tr-time');
+            const statReviewTime = document.getElementById('stat-review-time');
+
+            if (statWords) statWords.innerText = totalWordsTranslated.toLocaleString() + " 字";
+            if (statVersions) statVersions.innerText = totalVersionCount + " 次";
+            if (statTrTime) statTrTime.innerText = totalTrHours + " 小時";
+            if (statReviewTime) statReviewTime.innerText = totalReviewHours + " 小時";
+
+
+            // --- 3. 專案預算控制儀表解算（智慧動態單價抓取） ---
+            let budgetTotal = 32000;
+            let trUnitPrice = 1.0;  // 預設 NT$ 1/字
+            let revUnitPrice = 0.5; // 預設 NT$ 0.5/字
+
+            // 讀取成本預算評估表，從「單位成本」解析單價
+            if (rawBudgetData && rawBudgetData.length > 1) {
+                rawBudgetData.forEach(row => {
+                    if (row[0]) {
+                        if (row[0].includes("初稿翻譯") || row[0].includes("Translation")) {
+                            let parsedRate = parseFloat(row[1].replace(/[^0-9.]/g, ''));
+                            if (!isNaN(parsedRate)) trUnitPrice = parsedRate;
+                        } else if (row[0].includes("專業審校") || row[0].includes("Editing")) {
+                            let parsedRate = parseFloat(row[1].replace(/[^0-9.]/g, ''));
+                            if (!isNaN(parsedRate)) revUnitPrice = parsedRate;
+                        } else if (row[0].includes("預計總預算") || row[0].includes("Grand Total")) {
+                            let parsedBudget = parseFloat(row[2].replace(/[^0-9.]/g, ''));
+                            if (!isNaN(parsedBudget)) budgetTotal = parsedBudget;
+                        }
+                    }
+                });
+            }
+
+            // 計算真實支出：按字數與雲端單價核算
+            const translationSpent = totalWordsTranslated * trUnitPrice;
+            
+            // 審校審核的字數：透過與譯者回報表的關聯進行統計
+            let totalWordsReviewed = 0;
+            rawReviewerData.slice(1).forEach(row => {
+                const trName = row[revIdx.trName];
+                const pageInfo = row[revIdx.contentInfo];
+                const version = row[revIdx.version];
+
+                // 搜尋譯者回報表匹配的翻譯任務字數
+                let matchedWords = 0;
+                rawTranslatorData.slice(1).forEach(trRow => {
+                    if (trRow[trIdx.name] === trName && trRow[trIdx.pdfPage] === pageInfo && trRow[trIdx.version] === version) {
+                        matchedWords = parseInt(trRow[trIdx.words]) || 0;
+                    }
+                });
+                totalWordsReviewed += matchedWords;
+            });
+
+            const editingSpent = totalWordsReviewed * revUnitPrice;
+            const budgetSpent = translationSpent + editingSpent;
+
+            let surplusRate = 0;
+            if (budgetTotal > 0) {
+                surplusRate = Math.round(((budgetTotal - budgetSpent) / budgetTotal) * 100);
+            }
+            surplusRate = Math.max(-10, Math.min(100, surplusRate));
+
+            const budgetValText = document.getElementById('budget-val-text');
+            const gaugeNeedle = document.getElementById('gauge-needle');
+            const sBox = document.getElementById('budget-status-box');
+
+            if (budgetValText) budgetValText.innerText = surplusRate + '%';
+            if (gaugeNeedle) {
+                const degree = -90 + (surplusRate * 1.8);
+                gaugeNeedle.setAttribute('transform', `translate(100, 100) rotate(${degree})`);
+            }
+
+            if (sBox) {
+                if (surplusRate >= 40) {
+                    sBox.className = "text-xs p-3 text-center rounded-xl bg-emerald-50 text-emerald-800 font-bold";
+                    sBox.innerHTML = `預算控制極優！初稿已付: NT$ ${translationSpent.toLocaleString()} (單價: ${trUnitPrice}) / 審校已付: NT$ ${editingSpent.toLocaleString()} 元 (單價: ${revUnitPrice})`;
+                } else if (surplusRate >= 15) {
+                    sBox.className = "text-xs p-3 text-center rounded-xl bg-amber-50 text-amber-800 font-bold";
+                    sBox.innerHTML = `預算警戒！總花費: NT$ ${budgetSpent.toLocaleString()} 元 / 餘 NT$ ${(budgetTotal - budgetSpent).toLocaleString()} 元`;
+                } else {
+                    sBox.className = "text-xs p-3 text-center rounded-xl bg-red-50 text-red-800 font-bold";
+                    sBox.innerHTML = `超支警告！實時計付 NT$ ${budgetSpent.toLocaleString()} 元，超出預留預算限額！`;
+                }
+            }
+
+
+            // --- 4. 譯者核心 KPI 看板 ---
+            const translators = ["查理", "莎莉"];
+            const trKPI = {};
+            translators.forEach(name => {
+                trKPI[name] = { words: 0, hours: 0, submissions: 0, returnedCount: 0, qlSum: 0, qlCount: 0 };
+            });
+
+            // 統計翻譯總時長與字數
+            rawTranslatorData.slice(1).forEach(row => {
+                if (trIdx.name === -1) return;
+                const name = row[trIdx.name];
+                if (translators.includes(name)) {
+                    trKPI[name].words += parseInt(row[trIdx.words]) || 0;
+                    trKPI[name].hours += parseFloat(row[trIdx.hours]) || 0;
+                    trKPI[name].submissions++;
+                }
+            });
+
+            // 統計返工與來自審校對譯者的品質級
+            rawReviewerData.slice(1).forEach(row => {
+                if (revIdx.trName === -1) return;
+                const name = row[revIdx.trName];
+                if (translators.includes(name)) {
+                    if (revIdx.qlRate !== -1 && row[revIdx.qlRate]) {
+                        trKPI[name].qlSum += parseFloat(row[revIdx.qlRate]) || 0;
+                        trKPI[name].qlCount++;
+                    }
+                    if (revIdx.isReturned !== -1) {
+                        const isRet = row[revIdx.isReturned] || "否";
+                        if (isRet === "是" || isRet.includes("退回") || isRet.includes("退還")) {
+                            trKPI[name].returnedCount++;
+                        }
+                    }
+                }
+            });
+
+            const trContainer = document.getElementById('translator-kpi-container');
+            if (trContainer) {
+                trContainer.innerHTML = '';
+
+                translators.forEach(name => {
+                    const kpi = trKPI[name];
+                    const speed = kpi.hours > 0 ? Math.round(kpi.words / kpi.hours) : 0;
+                    const reworkRate = kpi.submissions > 0 ? Math.round((kpi.returnedCount / kpi.submissions) * 100) : 0;
+                    
+                    const avgQL = kpi.qlCount > 0 ? (kpi.qlSum / kpi.qlCount).toFixed(2) : "0.0";
+                    let qlLevel = "優良 (QL <= 2.5)";
+                    let levelBadge = "bg-emerald-50 text-emerald-700";
+                    const qlFloat = parseFloat(avgQL);
+                    if (qlFloat > 5) {
+                        qlLevel = "欠佳 (QL > 5)";
+                        levelBadge = "bg-red-50 text-red-700";
+                    } else if (qlFloat > 2.5) {
+                        qlLevel = "中等 (2.5 < QL <= 5)";
+                        levelBadge = "bg-amber-50 text-amber-700";
+                    }
+
+                    const trDiv = document.createElement('div');
+                    trDiv.className = "bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 space-y-2 text-xs";
+                    trDiv.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-sm text-morandi-text flex items-center gap-1.5">
+                                <i data-lucide="user" class="w-3.5 h-3.5 text-morandi-primary"></i> ${name}
+                            </span>
+                            <div class="space-x-1 flex items-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-morandi-primaryLight text-morandi-text">
+                                    速度：${speed} 字/小時
+                                </span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${levelBadge}">
+                                    品質：${avgQL} (${qlLevel})
+                                </span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                            <div>累計完成：<b>${kpi.words.toLocaleString()} 字</b></div>
+                            <div>返工退修率：<b>${reworkRate}%</b> (提交 ${kpi.submissions} 次)</div>
+                        </div>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-morandi-primary h-full" style="width: ${Math.min(100, speed / 10)}%"></div>
+                        </div>
+                    `;
+                    trContainer.appendChild(trDiv);
+                });
+            }
+
+
+            // --- 5. 審校回報翻譯錯誤類型分布統計 ---
+            let errTermTotal = 0; let anyTermPlus = false;
+            let errTransTotal = 0; let anyTransPlus = false;
+            let errGrammarTotal = 0; let anyGrammarPlus = false;
+            let errOmissionTotal = 0; let anyOmissionPlus = false;
+            let errContextTotal = 0; let anyContextPlus = false;
+
+            rawReviewerData.slice(1).forEach(row => {
+                if (revIdx.errTerm !== -1) {
+                    let p1 = parseNumberWithPlus(row[revIdx.errTerm]);
+                    errTermTotal += p1.val; if (p1.hasPlus) anyTermPlus = true;
+                }
+                if (revIdx.errTrans !== -1) {
+                    let p2 = parseNumberWithPlus(row[revIdx.errTrans]);
+                    errTransTotal += p2.val; if (p2.hasPlus) anyTransPlus = true;
+                }
+                if (revIdx.errGrammar !== -1) {
+                    let p3 = parseNumberWithPlus(row[revIdx.errGrammar]);
+                    errGrammarTotal += p3.val; if (p3.hasPlus) anyGrammarPlus = true;
+                }
+                if (revIdx.errOmission !== -1) {
+                    let p4 = parseNumberWithPlus(row[revIdx.errOmission]);
+                    errOmissionTotal += p4.val; if (p4.hasPlus) anyOmissionPlus = true;
+                }
+                if (revIdx.errContext !== -1) {
+                    let p5 = parseNumberWithPlus(row[revIdx.errContext]);
+                    errContextTotal += p5.val; if (p5.hasPlus) anyContextPlus = true;
+                }
+            });
+
+            const numericSum = errTermTotal + errTransTotal + errGrammarTotal + errOmissionTotal + errContextTotal;
+            const anyTotalPlus = anyTermPlus || anyTransPlus || anyGrammarPlus || anyOmissionPlus || anyContextPlus;
+            const totalDisplayString = numericSum + (anyTotalPlus ? "+" : "");
+
+            const errList = [
+                { type: "術語不一致", count: errTermTotal, hasPlus: anyTermPlus, color: "#8FB9A8" },
+                { type: "誤譯", count: errTransTotal, hasPlus: anyTransPlus, color: "#E6C175" },
+                { type: "文法錯誤", count: errGrammarTotal, hasPlus: anyGrammarPlus, color: "#D98880" },
+                { type: "漏譯", count: errOmissionTotal, hasPlus: anyOmissionPlus, color: "#7D9D8C" },
+                { type: "語境失真", count: errContextTotal, hasPlus: anyContextPlus, color: "#C2B29E" }
+            ];
+
+            let accum = 0;
+            const pieIds = ["pie-1", "pie-2", "pie-3", "pie-4", "pie-5"];
+            pieIds.forEach(id => {
+                const slice = document.getElementById(id);
+                if (slice) slice.setAttribute('stroke-dasharray', "0 100");
+            });
+
+            const legendContainer = document.getElementById('legends-container');
+            if (legendContainer) {
+                legendContainer.innerHTML = '';
+
+                errList.forEach((err, idx) => {
+                    const pct = numericSum > 0 ? (err.count / numericSum) * 100 : 0;
+                    const slice = document.getElementById(`pie-${idx+1}`);
+                    
+                    if (slice && pct > 0) {
+                        slice.setAttribute('stroke-dasharray', `${(pct / 100) * 88} 88`);
+                        slice.setAttribute('stroke-dashoffset', `${-(accum / 100) * 88}`);
+                        accum += pct;
+                    }
+
+                    const displayCount = err.count + (err.hasPlus ? "+" : "");
+                    legendContainer.innerHTML += `
+                        <div class="flex items-center justify-between border-b border-gray-150 py-1.5 w-full">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full" style="background:${err.color}"></span>
+                                <span class="font-bold text-gray-700">${err.type}</span>
+                            </div>
+                            <span class="font-bold text-gray-500">${displayCount} 次 (${Math.round(pct)}%)</span>
+                        </div>
+                    `;
+                });
+            }
+
+            const donutPieBase = document.getElementById('pie-1');
+            if (donutPieBase) {
+                const parent = donutPieBase.parentElement.parentElement;
+                const donutLabel = document.createElement('div');
+                donutLabel.className = "absolute inset-0 flex flex-col items-center justify-center";
+                donutLabel.innerHTML = `
+                    <span class="text-[10px] text-gray-400">翻譯錯誤總數</span>
+                    <span class="text-lg font-bold text-morandi-text">${totalDisplayString}</span>
+                `;
+                const oldLabel = parent.querySelector('.absolute');
+                if (oldLabel) oldLabel.remove();
+                parent.appendChild(donutLabel);
+            }
+
+
+            // --- 6. 審校核心 KPI 看板 (跨表關聯解算字數速度) ---
+            const reviewers = ["露西", "奈勒斯"];
+            const revKPI = {};
+            reviewers.forEach(name => {
+                revKPI[name] = { hours: 0, count: 0, wordsReviewed: 0 };
+            });
+
+            // 進度調度總表列
+            let rawDispatchRows = (rawDispatchData && rawDispatchData.length > 1) ? rawDispatchData.slice(1) : [];
+
+            rawReviewerData.slice(1).forEach(row => {
+                const trName = row[revIdx.trName];
+                const content = row[revIdx.contentInfo];
+                const version = row[revIdx.version];
+                
+                // 1. 尋找負責這起審查任務的審校人員
+                let matchingReviewer = "";
+                rawDispatchRows.forEach(dpRow => {
+                    const dpHeader = rawDispatchData[0];
+                    const dpIdx = {
+                        content: findCol(dpHeader, ["翻譯pdf頁次或影片秒數", "頁次", "交付內容"]),
+                        tr: findCol(dpHeader, ["負責譯者", "譯者"]),
+                        rev: findCol(dpHeader, ["負責審校", "審校"])
+                    };
+                    if (dpIdx.content !== -1 && dpIdx.tr !== -1 && dpIdx.rev !== -1) {
+                        if (dpRow[dpIdx.content] === content || dpRow[dpIdx.tr] === trName) {
+                            matchingReviewer = dpRow[dpIdx.rev];
+                        }
+                    }
+                });
+
+                if (!matchingReviewer) {
+                    matchingReviewer = reviewers[rawReviewerData.indexOf(row) % reviewers.length];
+                }
+
+                // 2. 跨表尋找對應的翻譯總字數
+                let matchedWords = 0;
+                rawTranslatorData.slice(1).forEach(trRow => {
+                    if (trRow[trIdx.name] === trName && trRow[trIdx.pdfPage] === content && trRow[trIdx.version] === version) {
+                        matchedWords = parseInt(trRow[trIdx.words]) || 0;
+                    }
+                });
+
+                if (reviewers.includes(matchingReviewer)) {
+                    if (revIdx.revHours !== -1) {
+                        revKPI[matchingReviewer].hours += parseFloat(row[revIdx.revHours]) || 0;
+                    }
+                    revKPI[matchingReviewer].wordsReviewed += matchedWords;
+                    revKPI[matchingReviewer].count++;
+                }
+            });
+
+            const revContainer = document.getElementById('reviewer-kpi-container');
+            if (revContainer) {
+                revContainer.innerHTML = '';
+
+                reviewers.forEach(name => {
+                    const kpi = revKPI[name];
+                    // 審校速度：跨表匹配字數 / 實際審校總時長
+                    const revSpeed = kpi.hours > 0 ? Math.round(kpi.wordsReviewed / kpi.hours) : 0;
+
+                    const revDiv = document.createElement('div');
+                    revDiv.className = "bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100 space-y-2 text-xs";
+                    revDiv.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-sm text-morandi-text flex items-center gap-1.5">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-morandi-primary"></i> ${name}
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-morandi-accent text-white">
+                                審校速度：${revSpeed} 字/小時
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                            <div>已處理件數：<b>${kpi.count} 件</b> (共 ${kpi.wordsReviewed.toLocaleString()} 字)</div>
+                            <div>工作時長：<b>${kpi.hours} 小時</b></div>
+                        </div>
+                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-morandi-accent h-full" style="width: ${Math.min(100, revSpeed / 15)}%"></div>
+                        </div>
+                    `;
+                    revContainer.appendChild(revDiv);
+                });
+            }
+
+            lucide.createIcons();
+        }
+
+        window.onload = function() {
+            initSettings();
+            syncAllSheets();
+        }
+    </script>
+</body>
+</html>
