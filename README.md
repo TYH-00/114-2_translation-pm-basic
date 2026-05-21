@@ -1,13 +1,13 @@
 # 114-2_translation-pm-basic
 A basic translation project management tool.
 
-# Real-Time Translation Project Management System (TEP Framework)
+## Real-Time Translation Project Management System (TEP Framework)
 
 A lightweight, high-fidelity Translation Project Management (TPM) dashboard designed for academic simulation and small-scale Localization Service Provider (LSP) workflows. This system enables real-time Tracking, Evaluation, and Pricing by dynamically parsing and cross-referencing live data streams from Google Sheets (via published CSV endpoints).
 
 ---
 
-## 🚀 Key Features
+### 🚀 Key Features
 
 * **Dynamic Data Synchronization:** Real-time integration with Translator Reports, Reviewer Feedback, Project Dispatcher, and Budget Estimation spreadsheets.
 * **Cross-Table Relation Engine:** Automatically links proofreading records back to the original translation entry using `Translator Name`, `Version Number`, and `Document Page/Video Timestamp` to dynamically resolve missing word counts for reviewer metrics.
@@ -17,7 +17,7 @@ A lightweight, high-fidelity Translation Project Management (TPM) dashboard desi
 
 ---
 
-## 💼 Business Logic & TEP Cost Allocation
+### 💼 Business Logic & TEP Cost Allocation
 
 While standard Localization Service Providers (LSPs) typically present clients with an all-inclusive single rate per word, internal operations and production-level project management require strict cost splitting across the **TEP (Translation, Editing, Proofreading)** pipeline. 
 
@@ -33,35 +33,35 @@ This project simulates a highly professional and realistic cost breakdown to bal
 
 ---
 
-## 🛠️ Architecture & Translation Workflow
+### 🛠️ Architecture & Translation Workflow
 
 The system maps metrics and quality indicators across three major project lifecycle gates:
 
-### 1. Preparation Phase
+#### 1. Preparation Phase
 * **Project Scope Analysis:** PM evaluates technical difficulty, duplicate metrics, and files.
 * **Glossary & TM Alignment:** Setting up specific term bases to ensure consistency.
 
-### 2. Execution Phase
+#### 2. Execution Phase
 * **Draft Generation:** Translators submit word counts and actual duration metrics.
 * **Bilingual Review:** Reviewers perform linguistic quality assurance (LQA), scoring errors using a 5-tier classification system (Terminology, Mistranslation, Grammar, Omission, Context).
 * **Rework Loops:** Automatically flags rejected milestones back to "Rework in Progress" state.
 
-### 3. Delivery Phase
+#### 3. Delivery Phase
 * **Final Quality Gates:** Monolingual proofing and tag verifications.
 * **Financial Reconciliation:** Automatic computation of finalized expenditures against the global project budget.
 
 ---
 
-## 📥 Getting Started
+### 📥 Getting Started
 
-### Prerequisites
+#### Prerequisites
 To hook up your own data sources, you need a Google Spreadsheet with four distinct tabs corresponding to:
 1. Translator Reports
 2. Reviewer Feedback
 3. Budget Estimation
 4. Project Dispatcher
 
-### Cloud Connection Setup
+#### Cloud Connection Setup
 1. In your Google Spreadsheet, navigate to `File` -> `Share` -> `Publish to Web`.
 2. Select the specific tab you wish to connect.
 3. Change the export type from *Web Page* to **Comma-separated values (.csv)**.
@@ -70,12 +70,12 @@ To hook up your own data sources, you need a Google Spreadsheet with four distin
 
 ---
 
-## 🎨 Design Theme
+### 🎨 Design Theme
 The user interface features a custom-designed **Morandi Palette**—utilizing muted Sage Greens (`#7D9D8C`), Slate Grays (`#2C3531`), and Warm Clays (`#C2B29E`) to minimize cognitive fatigue during long hours of data monitoring, typical of standard localization production environments.
 
 ---
 
-## 👩‍💻 Credits & Project Info
+### 👩‍💻 Credits & Project Info
 
 * **Project Type:** Academic Course Simulation / Portfolio Demonstration
 * **System Version:** Basic Version
@@ -85,6 +85,6 @@ The user interface features a custom-designed **Morandi Palette**—utilizing mu
 
 ---
 
-## ⚠️ Academic Disclaimer
+### ⚠️ Academic Disclaimer
 
 This repository is created solely for educational and simulation purposes as part of a university course assignment. The integrated datasets, forms, and financial models represent mock scenarios designed to test localized workflow logic and cross-table automation. They do not constitute official corporate financial records or live business operations.
